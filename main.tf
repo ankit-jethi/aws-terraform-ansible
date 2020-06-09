@@ -176,3 +176,27 @@ resource "aws_subnet" "wp_rds3_subnet" {
     Name = "wp_rds3_subnet"
   }
 }
+
+# RDS Subnet Group
+
+resource "aws_db_subnet_group" "wp_rds_subnet_group" {
+  name       = "wp_rds_subnet_group"
+  subnet_ids = [aws_subnet.wp_rds1_subnet.id, aws_subnet.wp_rds2_subnet.id, aws_subnet.wp_rds3_subnet.id]
+
+  tags = {
+    Name = "wp_rds_subnet_group"
+  }
+}
+
+
+# Route Table associations
+
+resource "aws_route_table_association" "wp_public1_association" {
+  route_table_id = aws_route_table.wp_public_rt.id
+  subnet_id      = aws_subnet.wp_public1_subnet.id
+}
+
+resource "aws_route_table_association" "wp_public2_association" {
+  route_table_id = aws_route_table.wp_public_rt.id
+  subnet_id      = aws_subnet.wp_public2_subnet.id
+}
