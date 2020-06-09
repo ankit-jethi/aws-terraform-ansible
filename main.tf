@@ -74,7 +74,7 @@ resource "aws_internet_gateway" "wp_igw" {
 }
 
 
-# Route Tables
+# Public Route Table
 
 resource "aws_route_table" "wp_public_rt" {
   vpc_id = aws_vpc.wp_vpc.id
@@ -89,10 +89,90 @@ resource "aws_route_table" "wp_public_rt" {
   }
 }
 
+# Private Route Table - Default
+
 resource "aws_default_route_table" "wp_private_rt" {
   default_route_table_id = aws_vpc.wp_vpc.default_route_table_id
 
   tags = {
     Name = "wp_private_rt"
+  }
+}
+
+# Public Subnets
+
+resource "aws_subnet" "wp_public1_subnet" {
+  vpc_id                  = aws_vpc.wp_vpc.id
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  cidr_block              = var.subnet_cidr_block["wp_public1_subnet"]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "wp_public1_subnet"
+  }
+}
+
+resource "aws_subnet" "wp_public2_subnet" {
+  vpc_id                  = aws_vpc.wp_vpc.id
+  availability_zone       = data.aws_availability_zones.available.names[1]
+  cidr_block              = var.subnet_cidr_block["wp_public2_subnet"]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "wp_public2_subnet"
+  }
+}
+
+# Private Subnets
+
+resource "aws_subnet" "wp_private1_subnet" {
+  vpc_id            = aws_vpc.wp_vpc.id
+  availability_zone = data.aws_availability_zones.available.names[0]
+  cidr_block        = var.subnet_cidr_block["wp_private1_subnet"]
+
+  tags = {
+    Name = "wp_private1_subnet"
+  }
+}
+
+resource "aws_subnet" "wp_private2_subnet" {
+  vpc_id            = aws_vpc.wp_vpc.id
+  availability_zone = data.aws_availability_zones.available.names[1]
+  cidr_block        = var.subnet_cidr_block["wp_private2_subnet"]
+
+  tags = {
+    Name = "wp_private2_subnet"
+  }
+}
+
+# RDS Subnets
+
+resource "aws_subnet" "wp_rds1_subnet" {
+  vpc_id            = aws_vpc.wp_vpc.id
+  availability_zone = data.aws_availability_zones.available.names[0]
+  cidr_block        = var.subnet_cidr_block["wp_rds1_subnet"]
+
+  tags = {
+    Name = "wp_rds1_subnet"
+  }
+}
+
+resource "aws_subnet" "wp_rds2_subnet" {
+  vpc_id            = aws_vpc.wp_vpc.id
+  availability_zone = data.aws_availability_zones.available.names[1]
+  cidr_block        = var.subnet_cidr_block["wp_rds2_subnet"]
+
+  tags = {
+    Name = "wp_rds2_subnet"
+  }
+}
+
+resource "aws_subnet" "wp_rds3_subnet" {
+  vpc_id            = aws_vpc.wp_vpc.id
+  availability_zone = data.aws_availability_zones.available.names[2]
+  cidr_block        = var.subnet_cidr_block["wp_rds3_subnet"]
+
+  tags = {
+    Name = "wp_rds3_subnet"
   }
 }
