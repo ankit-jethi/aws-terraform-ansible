@@ -44,7 +44,9 @@ resource "aws_iam_role_policy" "s3_access_policy" {
         "s3:*"
       ],
       "Effect": "Allow",
-      "Resource": "*"
+      "Resource": [
+        "${aws_s3_bucket.wp_s3_bucket.arn}/*"
+      ]
     }
   ]
 }
@@ -318,5 +320,34 @@ resource "aws_security_group" "wp_rds_sg" {
 
   tags = {
     Name = "wp_rds_sg"
+  }
+}
+
+# VPC Endpoint for S3
+
+resource "aws_vpc_endpoint" "wp_vpce_s3" {
+  service_name    = "com.amazonaws.${var.aws_region}.s3"
+  vpc_id          = aws_vpc.wp_vpc.id
+  route_table_ids = [aws_route_table.wp_public_rt.id, aws_default_route_table.wp_private_rt.id]
+
+  tags = {
+    Name = "wp_vpce_s3"
+  }
+}
+
+#-------------S3--------------
+
+# S3 bucket
+
+# resource "random_id" "wp_s3_bucket" {
+#   byte_length = 2
+# }
+
+resource "aws_s3_bucket" "wp_s3_bucket" {
+  bucket_prefix = "${var.domain_name}-"
+  force_destroy = true
+
+  tags = {
+    Name = "wp_s3_bucket"
   }
 }

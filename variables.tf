@@ -16,5 +16,7 @@ variable "subnet_cidr_block" {
 }
 
 variable "my_ip" {
+}
 
+variable "domain_name" {
 }
