@@ -351,3 +351,17 @@ resource "aws_s3_bucket" "wp_s3_bucket" {
     Name = "wp_s3_bucket"
   }
 }
+
+resource "aws_db_instance" "wp_db_instance" {
+  allocated_storage      = 10
+  engine                 = "mysql"
+  engine_version         = "5.7"
+  instance_class         = var.db_instance_class
+  identifier             = var.db_instance_name
+  name                   = var.db_name
+  username               = var.db_username
+  password               = var.db_password
+  db_subnet_group_name   = aws_db_subnet_group.wp_rds_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.wp_rds_sg.id]
+  skip_final_snapshot    = true
+}
