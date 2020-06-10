@@ -14,3 +14,7 @@ data "aws_availability_zones" "available" {
 variable "subnet_cidr_block" {
   type = map(string)
 }
+
+variable "my_ip" {
+
+}

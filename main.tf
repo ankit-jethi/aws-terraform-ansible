@@ -200,3 +200,123 @@ resource "aws_route_table_association" "wp_public2_association" {
   route_table_id = aws_route_table.wp_public_rt.id
   subnet_id      = aws_subnet.wp_public2_subnet.id
 }
+
+# Load Balancer Security Group
+
+resource "aws_security_group" "wp_elb_sg" {
+  name        = "wp_elb_sg"
+  description = "Load Balancer Security Group"
+  vpc_id      = aws_vpc.wp_vpc.id
+
+  ingress {
+    description = "HTTP access from the world"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "wp_elb_sg"
+  }
+}
+
+# Dev/Bastion Security Group
+
+resource "aws_security_group" "wp_dev_sg" {
+  name        = "wp_dev_sg"
+  description = "Dev/Bastion Security Group"
+  vpc_id      = aws_vpc.wp_vpc.id
+
+  ingress {
+    description = "HTTP access from me"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+
+  ingress {
+    description = "SSH access from me"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "wp_dev_sg"
+  }
+}
+
+# Private Security Group - Maybe allow all traffic from self?
+
+resource "aws_security_group" "wp_private_sg" {
+  name        = "wp_private_sg"
+  description = "Private Security Group"
+  vpc_id      = aws_vpc.wp_vpc.id
+
+  ingress {
+    description     = "HTTP access from the Load Balancer"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.wp_elb_sg.id]
+  }
+
+  ingress {
+    description     = "SSH access from Dev/Bastion"
+    from_port       = 22
+    to_port         = 22
+    protocol        = "tcp"
+    security_groups = [aws_security_group.wp_dev_sg.id]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "wp_private_sg"
+  }
+}
+
+# RDS Security Group
+
+resource "aws_security_group" "wp_rds_sg" {
+  name        = "wp_rds_sg"
+  description = "RDS Security Group"
+  vpc_id      = aws_vpc.wp_vpc.id
+
+  ingress {
+    description     = "DB access from Private & Dev/Bastion Security Group"
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    security_groups = [aws_security_group.wp_private_sg.id, aws_security_group.wp_dev_sg.id]
+  }
+
+  tags = {
+    Name = "wp_rds_sg"
+  }
+}
