@@ -352,6 +352,8 @@ resource "aws_s3_bucket" "wp_s3_bucket" {
   }
 }
 
+#---------------RDS----------------
+
 resource "aws_db_instance" "wp_db_instance" {
   allocated_storage      = 10
   engine                 = "mysql"
@@ -364,4 +366,48 @@ resource "aws_db_instance" "wp_db_instance" {
   db_subnet_group_name   = aws_db_subnet_group.wp_rds_subnet_group.name
   vpc_security_group_ids = [aws_security_group.wp_rds_sg.id]
   skip_final_snapshot    = true
+}
+
+#-------------EC2----------------
+
+# Key Pair
+
+resource "aws_key_pair" "wp_key_pair" {
+  key_name   = var.key_name
+  public_key = file(var.path_to_public_key)
+}
+
+# Dev/Bastion Instance
+
+resource "aws_instance" "wp_dev" {
+  ami                    = var.dev_ami
+  instance_type          = var.dev_instance_type
+  key_name               = aws_key_pair.wp_key_pair.key_name
+  vpc_security_group_ids = [aws_security_group.wp_dev_sg.id]
+  subnet_id              = aws_subnet.wp_public2_subnet.id
+  iam_instance_profile   = aws_iam_instance_profile.s3_access_profile.name
+
+  tags = {
+    Name = "wp_dev"
+  }
+
+  # Setup the hosts file for ansible
+
+  provisioner "local-exec" {
+    command = <<EOD
+cat > aws_hosts <<EOF
+[dev]
+${aws_instance.wp_dev.public_ip}
+[dev:vars]
+s3bucket=${aws_s3_bucket.wp_s3_bucket.id}
+domain=${var.domain_name}
+EOF
+EOD
+  }
+
+  # Run the ansible playbook
+
+  provisioner "local-exec" {
+    command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.wp_dev.id} --profile ${var.aws_profile} && ansible-playbook -i aws_hosts wordpress.yml"
+  }
 }

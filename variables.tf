@@ -25,3 +25,11 @@ variable "db_name" {}
 variable "db_username" {}
 
 variable "db_password" {}
+
+variable "key_name" {}
+
+variable "path_to_public_key" {}
+
+variable "dev_ami" {}
+
+variable "dev_instance_type" {}
