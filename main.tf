@@ -533,3 +533,58 @@ resource "aws_autoscaling_group" "wp_asg" {
     create_before_destroy = true
   }
 }
+
+#----------Route 53-----------------
+
+# Public Zone
+
+resource "aws_route53_zone" "wp_public_zone" {
+  name              = "${var.domain_name}.online"
+  delegation_set_id = var.delegation_set_id
+  force_destroy     = true
+}
+
+# Load Balancer Record
+
+resource "aws_route53_record" "wp_elb_record" {
+  zone_id = aws_route53_zone.wp_public_zone.zone_id
+  name    = "www.${var.domain_name}.online"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.wp_elb.dns_name
+    zone_id                = aws_lb.wp_elb.zone_id
+    evaluate_target_health = false
+  }
+}
+
+# Dev/Bastion Instance Record
+
+resource "aws_route53_record" "wp_dev_record" {
+  zone_id = aws_route53_zone.wp_public_zone.zone_id
+  name    = "dev.${var.domain_name}.online"
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.wp_dev.public_ip]
+}
+
+# Private Zone
+
+resource "aws_route53_zone" "wp_private_zone" {
+  name          = "${var.domain_name}.online"
+  force_destroy = true
+
+  vpc {
+    vpc_id = aws_vpc.wp_vpc.id
+  }
+}
+
+# Database Instance Record
+
+resource "aws_route53_record" "wp_db_record" {
+  zone_id = aws_route53_zone.wp_private_zone.zone_id
+  name    = "db.${var.domain_name}.online"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_db_instance.wp_db_instance.address]
+}
