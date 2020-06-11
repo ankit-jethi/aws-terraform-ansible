@@ -411,3 +411,58 @@ EOD
     command = "aws ec2 wait instance-status-ok --instance-ids ${aws_instance.wp_dev.id} --profile ${var.aws_profile} && ansible-playbook -i aws_hosts wordpress.yml"
   }
 }
+
+# Load Balancer
+
+resource "aws_lb" "wp_elb" {
+  name               = "wp-${var.domain_name}-elb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.wp_elb_sg.id]
+  subnets            = [aws_subnet.wp_public1_subnet.id, aws_subnet.wp_public2_subnet.id]
+  idle_timeout       = 400
+
+  tags = {
+    Name = "wp-${var.domain_name}-elb"
+  }
+
+}
+
+# Load Balancer Target Group
+
+resource "aws_lb_target_group" "wp_elb_tg" {
+  name                          = "wp-elb-tg"
+  port                          = 80
+  protocol                      = "HTTP"
+  vpc_id                        = aws_vpc.wp_vpc.id
+  deregistration_delay          = 400
+  slow_start                    = 30
+  load_balancing_algorithm_type = "least_outstanding_requests"
+
+  health_check {
+    interval = var.health_check_interval
+    path     = var.health_check_path
+    # protocol = "TCP"
+    timeout             = var.health_check_timeout
+    healthy_threshold   = var.healthy_threshold
+    unhealthy_threshold = var.unhealthy_threshold
+    matcher             = var.health_check_matcher
+  }
+
+  tags = {
+    Name = "wp-elb-tg"
+  }
+}
+
+# Load Balancer Listener
+
+resource "aws_lb_listener" "wp_elb_listener" {
+  load_balancer_arn = aws_lb.wp_elb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.wp_elb_tg.arn
+  }
+}

@@ -33,3 +33,15 @@ variable "path_to_public_key" {}
 variable "dev_ami" {}
 
 variable "dev_instance_type" {}
+
+variable "health_check_interval" {}
+
+variable "health_check_path" {}
+
+variable "health_check_timeout" {}
+
+variable "healthy_threshold" {}
+
+variable "unhealthy_threshold" {}
+
+variable "health_check_matcher" {}
