@@ -466,3 +466,29 @@ resource "aws_lb_listener" "wp_elb_listener" {
     target_group_arn = aws_lb_target_group.wp_elb_tg.arn
   }
 }
+
+# Generate Random ID for AMI Name
+
+resource "random_id" "golden_ami" {
+  byte_length = 8
+}
+
+# Create AMI from Dev/Bastion Instance
+
+resource "aws_ami_from_instance" "wp_golden_ami" {
+  name               = "wp_ami-${random_id.golden_ami.b64_std}"
+  source_instance_id = aws_instance.wp_dev.id
+
+  provisioner "local-exec" {
+    command = <<EOD
+cat > userdata <<EOF
+#!/bin/bash
+apt update
+apt install -y awscli
+aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id} /var/www/html/
+echo '*/5 * * * * aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id} /var/www/html/' > /root/mycron
+crontab /root/mycron
+EOF
+EOD
+  }
+}
