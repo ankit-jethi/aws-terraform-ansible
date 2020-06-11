@@ -492,3 +492,44 @@ EOF
 EOD
   }
 }
+
+# Launch Configuration
+
+resource "aws_launch_configuration" "wp_lc" {
+  name_prefix          = "wp_lc-"
+  image_id             = aws_ami_from_instance.wp_golden_ami.id
+  instance_type        = var.lc_instance_type
+  iam_instance_profile = aws_iam_instance_profile.s3_access_profile.name
+  key_name             = aws_key_pair.wp_key_pair.key_name
+  security_groups      = [aws_security_group.wp_private_sg.id]
+  user_data            = file("userdata")
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Autoscaling Group
+
+resource "aws_autoscaling_group" "wp_asg" {
+  name_prefix               = "wp_asg-"
+  max_size                  = var.asg_max_size
+  min_size                  = var.asg_min_size
+  launch_configuration      = aws_launch_configuration.wp_lc.name
+  health_check_grace_period = var.asg_grace_period
+  health_check_type         = var.asg_check_type
+  desired_capacity          = var.asg_desired_capacity
+  force_delete              = true
+  vpc_zone_identifier       = [aws_subnet.wp_private1_subnet.id, aws_subnet.wp_private2_subnet.id]
+  target_group_arns         = [aws_lb_target_group.wp_elb_tg.arn]
+
+  tag {
+    key                 = "Name"
+    value               = "wp_asg_instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}

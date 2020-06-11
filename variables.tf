@@ -45,3 +45,15 @@ variable "healthy_threshold" {}
 variable "unhealthy_threshold" {}
 
 variable "health_check_matcher" {}
+
+variable "lc_instance_type" {}
+
+variable "asg_max_size" {}
+
+variable "asg_min_size" {}
+
+variable "asg_grace_period" {}
+
+variable "asg_check_type" {}
+
+variable "asg_desired_capacity" {}
