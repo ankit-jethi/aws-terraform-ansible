@@ -37,18 +37,17 @@ resource "aws_iam_role_policy" "s3_access_policy" {
 
   policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "s3:*"
-      ],
-      "Effect": "Allow",
-      "Resource": [
-        "${aws_s3_bucket.wp_s3_bucket.arn}/*"
-      ]
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": [
+                "${aws_s3_bucket.wp_s3_bucket.arn}",
+                "${aws_s3_bucket.wp_s3_bucket.arn}/*"
+            ]
+        }
+    ]
 }
 EOF
 }
@@ -400,7 +399,8 @@ cat > aws_hosts <<EOF
 ${aws_instance.wp_dev.public_ip}
 [dev:vars]
 s3bucket=${aws_s3_bucket.wp_s3_bucket.id}
-domain=${var.domain_name}
+domain=dev.${var.domain_name}
+php_version=${var.php_version}
 EOF
 EOD
   }
@@ -415,17 +415,12 @@ EOD
 # Load Balancer
 
 resource "aws_lb" "wp_elb" {
-  name               = "wp-${var.domain_name}-elb"
+  name               = "wp-elb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.wp_elb_sg.id]
   subnets            = [aws_subnet.wp_public1_subnet.id, aws_subnet.wp_public2_subnet.id]
   idle_timeout       = 400
-
-  tags = {
-    Name = "wp-${var.domain_name}-elb"
-  }
-
 }
 
 # Load Balancer Target Group
@@ -436,13 +431,11 @@ resource "aws_lb_target_group" "wp_elb_tg" {
   protocol                      = "HTTP"
   vpc_id                        = aws_vpc.wp_vpc.id
   deregistration_delay          = 400
-  slow_start                    = 30
   load_balancing_algorithm_type = "least_outstanding_requests"
 
   health_check {
-    interval = var.health_check_interval
-    path     = var.health_check_path
-    # protocol = "TCP"
+    interval            = var.health_check_interval
+    path                = var.health_check_path
     timeout             = var.health_check_timeout
     healthy_threshold   = var.healthy_threshold
     unhealthy_threshold = var.unhealthy_threshold
@@ -476,20 +469,20 @@ resource "random_id" "golden_ami" {
 # Create AMI from Dev/Bastion Instance
 
 resource "aws_ami_from_instance" "wp_golden_ami" {
-  name               = "wp_ami-${random_id.golden_ami.b64_std}"
+  name               = "wp_ami-${random_id.golden_ami.dec}"
   source_instance_id = aws_instance.wp_dev.id
 
   provisioner "local-exec" {
     command = <<EOD
 cat > userdata <<EOF
 #!/bin/bash
-apt update
-apt install -y awscli
-aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id} /var/www/html/
-echo '*/5 * * * * aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id} /var/www/html/' > /root/mycron
+aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id}/ /var/www/html/
+echo '*/5 * * * * aws s3 sync s3://${aws_s3_bucket.wp_s3_bucket.id}/ /var/www/html/' > /root/mycron
 crontab /root/mycron
+sed -i.bkp 's/dev.${var.domain_name}/www.${var.domain_name}/' /etc/nginx/sites-available/blog.example.com.conf
+systemctl reload nginx
 EOF
-EOD
+EOD    
   }
 }
 
@@ -536,10 +529,10 @@ resource "aws_autoscaling_group" "wp_asg" {
 
 #----------Route 53-----------------
 
-# Public Zone
+# Public Zone 
 
 resource "aws_route53_zone" "wp_public_zone" {
-  name              = "${var.domain_name}.online"
+  name              = var.domain_name
   delegation_set_id = var.delegation_set_id
   force_destroy     = true
 }
@@ -548,7 +541,7 @@ resource "aws_route53_zone" "wp_public_zone" {
 
 resource "aws_route53_record" "wp_elb_record" {
   zone_id = aws_route53_zone.wp_public_zone.zone_id
-  name    = "www.${var.domain_name}.online"
+  name    = "www.${var.domain_name}"
   type    = "A"
 
   alias {
@@ -562,7 +555,7 @@ resource "aws_route53_record" "wp_elb_record" {
 
 resource "aws_route53_record" "wp_dev_record" {
   zone_id = aws_route53_zone.wp_public_zone.zone_id
-  name    = "dev.${var.domain_name}.online"
+  name    = "dev.${var.domain_name}"
   type    = "A"
   ttl     = 300
   records = [aws_instance.wp_dev.public_ip]
@@ -571,7 +564,7 @@ resource "aws_route53_record" "wp_dev_record" {
 # Private Zone
 
 resource "aws_route53_zone" "wp_private_zone" {
-  name          = "${var.domain_name}.online"
+  name          = var.domain_name
   force_destroy = true
 
   vpc {
@@ -583,8 +576,9 @@ resource "aws_route53_zone" "wp_private_zone" {
 
 resource "aws_route53_record" "wp_db_record" {
   zone_id = aws_route53_zone.wp_private_zone.zone_id
-  name    = "db.${var.domain_name}.online"
+  name    = "db.${var.domain_name}"
   type    = "CNAME"
   ttl     = 300
   records = [aws_db_instance.wp_db_instance.address]
 }
+

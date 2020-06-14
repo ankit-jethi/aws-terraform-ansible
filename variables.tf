@@ -59,3 +59,5 @@ variable "asg_check_type" {}
 variable "asg_desired_capacity" {}
 
 variable "delegation_set_id" {}
+
+variable "php_version" {}
