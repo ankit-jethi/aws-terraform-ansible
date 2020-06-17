@@ -29,7 +29,7 @@ resource "aws_iam_instance_profile" "s3_access_profile" {
   role = aws_iam_role.s3_access_role.name
 }
 
-# Role Policy - Edit to restrict S3 actions & resource
+# Role Policy
 
 resource "aws_iam_role_policy" "s3_access_policy" {
   name = "s3_access_policy"
@@ -74,6 +74,32 @@ resource "aws_internet_gateway" "wp_igw" {
   }
 }
 
+# Elastic IP
+
+resource "aws_eip" "wp_ngw_eip" {
+  vpc              = true
+  public_ipv4_pool = "amazon"
+
+  tags = {
+    Name = "wp_ngw_eip"
+  }
+
+  depends_on = [aws_internet_gateway.wp_igw]
+}
+
+# NAT Gateway
+
+resource "aws_nat_gateway" "wp_ngw" {
+  allocation_id = aws_eip.wp_ngw_eip.id
+  subnet_id     = aws_subnet.wp_public2_subnet.id
+
+  tags = {
+    Name = "wp_ngw"
+  }
+
+  depends_on = [aws_internet_gateway.wp_igw]
+}
+
 
 # Public Route Table
 
@@ -90,10 +116,15 @@ resource "aws_route_table" "wp_public_rt" {
   }
 }
 
-# Private Route Table - Default
+# Private Route Table - Main
 
 resource "aws_default_route_table" "wp_private_rt" {
   default_route_table_id = aws_vpc.wp_vpc.default_route_table_id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.wp_ngw.id
+  }
 
   tags = {
     Name = "wp_private_rt"
@@ -266,7 +297,7 @@ resource "aws_security_group" "wp_dev_sg" {
   }
 }
 
-# Private Security Group - Maybe allow all traffic from self?
+# Private Security Group
 
 resource "aws_security_group" "wp_private_sg" {
   name        = "wp_private_sg"
@@ -337,10 +368,6 @@ resource "aws_vpc_endpoint" "wp_vpce_s3" {
 #-------------S3--------------
 
 # S3 bucket
-
-# resource "random_id" "wp_s3_bucket" {
-#   byte_length = 2
-# }
 
 resource "aws_s3_bucket" "wp_s3_bucket" {
   bucket_prefix = "${var.domain_name}-"
