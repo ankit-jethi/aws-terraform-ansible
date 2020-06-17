@@ -1,0 +1,9 @@
+# This file will be created from the terraform apply command.
+# It will look something like this.
+
+[dev]
+<Public IP Address of the Dev/Bastion instance>
+[dev:vars]
+s3bucket=<S3 Bucket Name>
+domain=<Domain Name>
+php_version=<PHP version>
