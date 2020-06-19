@@ -176,3 +176,19 @@ ansible --inventory aws_hosts --user ubuntu --module-name ping dev
 
 Running the `terraform apply` command may result in provider produced inconsistent final plan.  
 Executing the `terraform apply` command again should fix the issue.
+
+### Sources:
+1. [Terraform - AWS Provider](https://www.terraform.io/docs/providers/aws/index.html)
+2. [Resource Dependencies](https://learn.hashicorp.com/terraform/getting-started/dependencies)
+3. [AWS IAM Policy Documents](https://learn.hashicorp.com/terraform/aws/iam-policy)
+4. [Terraform - Random Provider](https://www.terraform.io/docs/providers/random/r/id.html)
+5. [Built-in Provisioners - local-exec](https://www.terraform.io/docs/provisioners/local-exec.html)
+6. [Ansible - Intro to Playbooks ](https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html)
+7. [Ansible Module Index](https://docs.ansible.com/ansible/latest/modules/modules_by_category.html)
+8. [Ansible Lint Documentation](https://docs.ansible.com/ansible-lint/index.html)
+9. [Ansible - Example - WordPress](https://github.com/ansible/ansible-examples/tree/master/wordpress-nginx_rhel7)
+10. [Making `get_url` and `unarchive` ansible modules idempotent](https://stackoverflow.com/questions/50364340/making-get-url-and-unarchive-ansible-commands-idempotent)
+11. [User data and shell scripts](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-shell-scripts)
+12. [Run user data with every restart of the EC2 instance](https://aws.amazon.com/premiumsupport/knowledge-center/execute-user-data-ec2/)
+13. [A Complete Guide and List of HTTP Status Codes](https://kinsta.com/blog/http-status-codes/)
+14. [Deploying to AWS with Ansible and Terraform](https://linuxacademy.com/course/deploying-to-aws-with-ansible-and-terraform/)
